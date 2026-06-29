@@ -1,10 +1,21 @@
 <?php
+/*
+ * ProfileController.php
+ *
+ * Purpose: Handle viewing and editing of user profiles.
+ * Why: Centralizes profile update logic including CSRF checks,
+ * image upload validation, and database updates to keep the UI
+ * layer simple and secure.
+ */
+
 require_once __DIR__ . '/../services/SecurityService.php';
 require_once __DIR__ . '/../middleware/LoggerMiddleware.php';
 class ProfileController {
     public function profile() {
         SecurityService::secureSessionStart();
         LoggerMiddleware::log('profile.php');
+
+        // Protect page by requiring an authenticated session.
         if (!isset($_SESSION['user_id'])) {
             header('Location: login.php');
             exit();
@@ -15,6 +26,7 @@ class ProfileController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $bio = $_POST['bio'] ?? '';
             $csrf = $_POST['csrf_token'] ?? '';
+            // CSRF protection for profile updates
             if (!SecurityService::validateCSRFToken($csrf)) {
                 $error = 'Invalid CSRF token.';
             } else {
@@ -31,6 +43,8 @@ class ProfileController {
                     }
                     $filename = SecurityService::randomFileName($ext);
                     $uploadPath = __DIR__ . '/../../storage/uploads/' . $filename;
+                    // Store uploaded image with a randomized filename to avoid collisions
+                    // and to prevent direct user-supplied filenames from being used.
                     if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $uploadPath)) {
                         $stmt = $pdo->prepare('UPDATE users SET profile_image = ? WHERE user_id = ?');
                         $stmt->execute([$filename, $user_id]);
@@ -46,6 +60,7 @@ class ProfileController {
         $stmt = $pdo->prepare('SELECT username, email, bio, profile_image FROM users WHERE user_id = ?');
         $stmt->execute([$user_id]);
         $user = $stmt->fetch();
+        // Views are responsible for escaping output; controller provides raw data.
         include $_SERVER['DOCUMENT_ROOT'] . '/profile_view.php';
     }
 
@@ -53,6 +68,7 @@ class ProfileController {
         SecurityService::secureSessionStart();
         LoggerMiddleware::log('view_profile.php');
 
+        // Require authentication; viewing other profiles is an action for logged-in users.
         if (!isset($_SESSION['user_id'])) {
             header('Location: login.php');
             exit();
@@ -60,7 +76,7 @@ class ProfileController {
 
         $target_id = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
 
-        // If viewing own profile, redirect to the editable profile page
+        // If the request is to view own profile, redirect to the editable profile page.
         if ($target_id === (int)$_SESSION['user_id']) {
             header('Location: profile.php');
             exit();

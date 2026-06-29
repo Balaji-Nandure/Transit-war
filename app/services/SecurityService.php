@@ -1,6 +1,16 @@
 <?php
+/*
+ * SecurityService.php
+ *
+ * Purpose: Centralize security-related helpers and validation routines.
+ * Why: Keeping security helpers in one place avoids duplicated logic
+ * and makes it easier to harden defaults (sessions, CSRF, uploads, hashing).
+ */
+
 // SecurityService: Centralized security and validation functions
 class SecurityService {
+    // Constants define acceptable image MIME types and size bounds to protect
+    // the application from very small filler images and overly large payloads.
     private const IMAGE_ALLOWED_MIME_TO_EXT = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
@@ -34,11 +44,15 @@ class SecurityService {
         return $_SESSION['csrf_token'];
     }
     public static function validateCSRFToken($token) {
+        // Use hash_equals to compare tokens in constant time and prevent
+        // timing attacks. Tokens are single-use to reduce CSRF window.
         $valid = isset($_SESSION['csrf_token']) &&
                 hash_equals($_SESSION['csrf_token'], $token);
 
         if ($valid) {
-            unset($_SESSION['csrf_token']); // forced tthe regeneration
+            // Invalidate the token after successful validation to force
+            // regeneration on the next form (single-use token strategy).
+            unset($_SESSION['csrf_token']); // forced the regeneration
         }
 
         return $valid;
@@ -51,6 +65,11 @@ class SecurityService {
         header("X-Content-Type-Options: nosniff");
         header("Referrer-Policy: no-referrer");
         header("Content-Security-Policy: default-src 'self' https://stackpath.bootstrapcdn.com; img-src 'self' data:; style-src 'self' https://stackpath.bootstrapcdn.com; script-src 'self' https://stackpath.bootstrapcdn.com;");
+
+        // Purpose: set secure defaults for sessions and cookies. These headers
+        // reduce common browser-based attack surfaces (clickjacking, MIME
+        // sniffing, and third-party scripts). Cookie flags are set below to
+        // reduce exposure to XSS/CSRF-related cookie theft.
 
         // session directory exists and set session save path
         if (!is_dir('/var/www/sessions')) {
@@ -89,6 +108,9 @@ class SecurityService {
     }
     // File upload security
     public static function validateImageUpload($file, &$errorMessage = null) {
+        // Validate an uploaded image against size, type, and content checks.
+        // This defends against simple content spoofing and ensures uploads
+        // meet reasonable constraints for storage and display.
         if (!isset($file['error'], $file['name'], $file['tmp_name'], $file['size'])) {
             $errorMessage = 'Invalid upload payload.';
             return false;

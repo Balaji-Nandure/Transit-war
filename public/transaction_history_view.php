@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Full transaction history view. Controller provides $transactions and $balance. -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -32,9 +33,11 @@
             <tbody>
             <?php foreach ($transactions as $txn): ?>
                 <tr>
+                    <!-- Transaction id cast to int for safety -->
                     <td><?= (int)$txn['transaction_id'] ?></td>
                     <td><?= htmlspecialchars($txn['created_at']) ?></td>
                     <td>
+                        <!-- Sent vs Received determination by comparing IDs -->
                         <?php if ((int)$txn['sender_id'] === (int)$_SESSION['user_id']): ?>
                             <span class="badge badge-danger">Sent</span>
                         <?php else: ?>
