@@ -1,0 +1,29 @@
+services:
+  # web:
+  #   build: .
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: nsp_web
+    ports:
+      - "8443:443"
+    
+    depends_on:
+      - db
+  db:
+    image: mysql:8.0
+    container_name: nsp_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: thsd86872-hfs2y6@ugjd
+      MYSQL_DATABASE: transactiwar
+      MYSQL_USER: FinalSemester
+      MYSQL_PASSWORD: Chor-Chor@123 
+      TZ: "Asia/Kolkata"
+    command: --default-time-zone='+05:30'
+    volumes:
+      - db_data:/var/lib/mysql
+      - ../sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+volumes:
+  db_data:

@@ -1,0 +1,15 @@
+### PHP ###
+/vendor/
+.env
+composer.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Node
+node_modules/
