@@ -79,7 +79,8 @@ class SecurityService {
         ini_set('session.use_strict_mode', '1'); // Reject uninitialized session IDs to prevent session fixation
         $cookieParams = session_get_cookie_params();
         $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                   || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+                   || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+                   || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
         session_set_cookie_params([
             'lifetime' => 0,
             'path' => $cookieParams['path'],
