@@ -14,8 +14,8 @@ RETRY_COUNT=0
 DB_READY=0
 
 while [ $RETRY_COUNT -lt $DB_MAX_RETRIES ]; do
-  if mysql --ssl-mode=DISABLED -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" -e "SELECT 1" "$DB_NAME" >/dev/null 2>&1 || \
-     mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" -e "SELECT 1" "$DB_NAME" >/dev/null 2>&1; then
+  if mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" -e "SELECT 1" "$DB_NAME" >/dev/null 2>&1 || \
+     mysql --ssl-mode=DISABLED -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" -e "SELECT 1" "$DB_NAME" >/dev/null 2>&1; then
     DB_READY=1
     echo "MySQL connection successful!"
     break
@@ -26,7 +26,7 @@ while [ $RETRY_COUNT -lt $DB_MAX_RETRIES ]; do
 done
 
 if [ $DB_READY -eq 1 ]; then
-  # Initialize schema if tables don't exist yet
+  # Check if tables exist; if not, apply schema.sql
   TABLE_COUNT=$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}';" -s -N 2>/dev/null || echo "0")
   if [ "$TABLE_COUNT" = "0" ] && [ -f /docker-entrypoint-initdb.d/schema.sql ]; then
     echo "Empty database detected. Initializing tables from schema.sql..."

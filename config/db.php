@@ -13,9 +13,15 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES => false,
 ];
 
-// Support SSL options for cloud databases
-if (getenv('DB_SSL_CA')) {
-    $options[PDO::MYSQL_ATTR_SSL_CA] = getenv('DB_SSL_CA');
+// Support SSL connections (required by cloud providers like TiDB Cloud and Aiven)
+$caCertPath = getenv('DB_SSL_CA') ?: '/etc/ssl/certs/ca-certificates.crt';
+if (getenv('DB_SSL') === 'true' || getenv('DB_SSL_CA') || (!empty($host) && strpos($host, 'tidbcloud.com') !== false)) {
+    if (file_exists($caCertPath)) {
+        $options[PDO::MYSQL_ATTR_SSL_CA] = $caCertPath;
+    }
+    if (getenv('DB_SSL_VERIFY') === 'false') {
+        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    }
 }
 
 return new PDO($dsn, $user, $pass, $options);
